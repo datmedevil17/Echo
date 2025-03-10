@@ -3,21 +3,16 @@ import { useEffect } from "react";
 
 export default function Home() {
   useEffect(() => {
-    // Function to speak the welcome message
     const speakWelcome = () => {
       const message = "Welcome user! Click anywhere on the screen to initiate upload";
       const speech = new SpeechSynthesisUtterance(message);
-
-      // Ensure speech is not interrupted
-      speech.volume = 1; // Adjust volume if needed
-      speech.rate = 1; // Adjust speech rate if needed
-      speech.pitch = 1; // Adjust pitch if needed
-
-      window.speechSynthesis.cancel(); // Stop any ongoing speech
+      speech.volume = 100;
+      speech.rate = 1;
+      speech.pitch = 1;
+      window.speechSynthesis.cancel();
       window.speechSynthesis.speak(speech);
     };
 
-    // Use a small delay to bypass some browser restrictions
     setTimeout(speakWelcome, 500);
   }, []);
 
