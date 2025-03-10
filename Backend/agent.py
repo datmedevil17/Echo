@@ -1,42 +1,56 @@
 from langgraph.graph import StateGraph
-from langgraph.prebuilt import create_llm_agent
-from langchain.chat_models import ChatOpenAI
-from langchain.agents import AgentType
 from langchain.tools import Tool
-from retriever import retrieve_documents
-
-# Load Mistral API Key from .env
+from langchain_openai import ChatOpenAI
+from langchain_mistralai.chat_models import ChatMistral
+from langchain_openai.embeddings import OpenAIEmbeddings
+from langchain.vectorstores import FAISS
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.document_loaders import PyMuPDFLoader
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
+# Load API key from environment
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 
-# Define LLM with Mistral
-llm = ChatOpenAI(model="mistral-large-latest", openai_api_key=MISTRAL_API_KEY)
+# Initialize LLM (Mistral)
+llm = ChatMistral(model="mistral-large-latest", api_key=MISTRAL_API_KEY)
 
-# Define document retrieval tool
-def search_docs(query: str):
-    return retrieve_documents(query)  # Calls the retriever
+# Load and split document
+def process_document(file_path: str):
+    loader = PyMuPDFLoader(file_path)
+    documents = loader.load()
+    
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=400, chunk_overlap=50)
+    split_docs = text_splitter.split_documents(documents)
+    
+    return split_docs
 
-retrieval_tool = Tool(
-    name="DocumentRetriever",
-    func=search_docs,
-    description="Retrieves relevant documents based on the query.",
-)
+# Initialize retriever
+def initialize_retriever(documents):
+    embeddings = OpenAIEmbeddings()
+    vectorstore = FAISS.from_documents(documents, embeddings)
+    return vectorstore.as_retriever()
 
-# Create LangGraph Agent
-agent_config = {
-    "llm": llm,
-    "tools": [retrieval_tool],
-    "agent_type": AgentType.OPENAI_FUNCTIONS
-}
+# Define a retrieval tool
+def document_retriever(query: str):
+    """Retrieve relevant information from the document."""
+    return retriever.get_relevant_documents(query)
 
-agent = create_llm_agent(**agent_config)
+retrieval_tool = Tool(name="retriever", func=document_retriever, description="Fetches relevant document data.")
 
-# Define graph structure
-graph = StateGraph(agent)
-graph.add_edge(agent.END, agent.START)
-graph.set_entry_point(agent.START)
+# Create RAG agent using LangGraph
+def create_rag_agent():
+    agent = StateGraph()
+    agent.add_node("retrieval", retrieval_tool)
+    agent.set_entry_point("retrieval")
+    
+    return agent.compile()
 
-rag_agent = graph.compile()
+# Example usage
+if __name__ == "__main__":
+    file_path = "example.pdf"
+    docs = process_document(file_path)
+    retriever = initialize_retriever(docs)
+
+    rag_agent = create_rag_agent()
+    response = rag_agent.invoke({"query": "What is this document about?"})
+    print(response)
