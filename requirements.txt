@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pathway
+python-dotenv
+pydantic
+requests
+mistralai
+sentence-transformers
