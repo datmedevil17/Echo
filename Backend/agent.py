@@ -1,8 +1,7 @@
 from langgraph.graph import StateGraph
 from langchain.tools import Tool
-from langchain_openai import ChatOpenAI
 from langchain_mistralai.chat_models import ChatMistral
-from langchain_openai.embeddings import OpenAIEmbeddings
+from langchain_mistralai.embeddings import MistralEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import PyMuPDFLoader
@@ -24,9 +23,9 @@ def process_document(file_path: str):
     
     return split_docs
 
-# Initialize retriever
+# Initialize retriever using Mistral embeddings
 def initialize_retriever(documents):
-    embeddings = OpenAIEmbeddings()
+    embeddings = MistralEmbeddings(api_key=MISTRAL_API_KEY)
     vectorstore = FAISS.from_documents(documents, embeddings)
     return vectorstore.as_retriever()
 
